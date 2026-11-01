@@ -1,0 +1,1149 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMART COIN LAB</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#0b1220;
+  --panel:#142039;
+  --line:#2c3b55;
+  --text:#e8edf7;
+  --sub:#9cabc4;
+  --green:#38d9a9;
+  --red:#ff7685;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,"Malgun Gothic",sans-serif;
+}
+header {
+  padding:22px 16px;
+  background:#111d32;
+  border-bottom:1px solid var(--line);
+  text-align:center;
+}
+h1 {margin:0;font-size:25px}
+h2 {font-size:17px;margin:0 0 15px}
+small,.muted {color:var(--sub)}
+main {max-width:1120px;margin:auto;padding:16px}
+.panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:17px;
+  margin-bottom:15px;
+}
+.controls {
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr auto;
+  gap:10px;
+}
+input,select,button {
+  width:100%;
+  min-width:0;
+  padding:11px;
+  border-radius:9px;
+  border:1px solid #40516c;
+  background:#0c172a;
+  color:white;
+  font-size:14px;
+}
+button {
+  background:#235de3;
+  border:0;
+  font-weight:bold;
+  cursor:pointer;
+}
+button.secondary {background:#263952}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:15px;
+}
+.stat {
+  background:#142039;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:15px;
+}
+.stat strong {
+  display:block;
+  font-size:23px;
+  margin-top:10px;
+}
+.positive {color:var(--green)}
+.negative {color:var(--red)}
+.grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+}
+.row {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.row>* {flex:1}
+.chart {
+  width:100%;
+  height:330px;
+  background:#0b1527;
+  border-radius:10px;
+  display:block;
+}
+.chart.mini {height:120px}
+label {font-size:13px;color:#c1cce0}
+.notice {
+  padding:12px;
+  border-radius:9px;
+  background:#20344e;
+  margin-top:12px;
+  line-height:1.8;
+}
+.alert {background:#4c2b39}
+.bar {
+  height:12px;
+  background:#283b56;
+  border-radius:20px;
+  overflow:hidden;
+}
+.fill {
+  height:100%;
+  width:0;
+  background:linear-gradient(
+    90deg,#e95c6a,#eac354,#30c99b
+  );
+}
+table {width:100%;border-collapse:collapse}
+td,th {
+  padding:10px;
+  border-bottom:1px solid #30405a;
+  text-align:left;
+  font-size:13px;
+}
+#status {
+  padding:10px 0;
+  color:var(--sub);
+  font-size:13px;
+}
+footer {
+  text-align:center;
+  color:#8a9bb5;
+  padding:20px;
+  font-size:12px;
+}
+@media(max-width:750px) {
+  .controls {grid-template-columns:1fr 1fr}
+  .controls input {grid-column:span 2}
+  .stats {grid-template-columns:1fr 1fr}
+  .grid {grid-template-columns:1fr}
+  .chart {height:260px}
+  .stat strong {font-size:19px}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>📈 SMART COIN LAB</h1>
+  <small>업비트 기반 주식·코인 기술적 분석 연구소</small>
+</header>
+
+<main>
+
+<section class="panel">
+  <h2>🔎 종목 및 시간봉 선택</h2>
+  <div class="controls">
+    <input id="search"
+      placeholder="종목 검색 (비트코인, XRP)"
+      list="coins">
+    <datalist id="coins"></datalist>
+
+    <select id="market">
+      <option value="KRW-BTC">비트코인 BTC</option>
+      <option value="KRW-XRP">리플 XRP</option>
+      <option value="KRW-ETH">이더리움 ETH</option>
+    </select>
+
+    <select id="interval">
+      <option value="5">5분봉</option>
+      <option value="15">15분봉</option>
+      <option value="60">1시간봉</option>
+      <option value="240">4시간봉</option>
+      <option value="day">일봉</option>
+    </select>
+
+    <button id="refresh">새로고침</button>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button class="secondary" id="favorite">
+      ☆ 관심종목 추가
+    </button>
+    <select id="favorites">
+      <option value="">관심종목 선택</option>
+    </select>
+    <label>
+      <input type="checkbox" id="auto"
+        checked style="width:auto">
+      60초 자동 갱신
+    </label>
+  </div>
+  <div id="status">데이터 조회 준비 중...</div>
+</section>
+
+<section class="stats">
+  <div class="stat">
+    <small>현재가 (KRW)</small>
+    <strong id="price">—</strong>
+  </div>
+  <div class="stat">
+    <small>전일 대비</small>
+    <strong id="change">—</strong>
+  </div>
+  <div class="stat">
+    <small>종합 매매 점수</small>
+    <strong id="score">—</strong>
+  </div>
+  <div class="stat">
+    <small>분석 판정</small>
+    <strong id="verdict">—</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>📊 캔들 차트 · EMA20 · EMA60</h2>
+  <canvas class="chart" id="chart"></canvas>
+
+  <h2 style="margin-top:20px">RSI (14)</h2>
+  <canvas class="chart mini" id="rsiChart"></canvas>
+
+  <h2 style="margin-top:20px">MACD (12,26,9)</h2>
+  <canvas class="chart mini" id="macdChart"></canvas>
+</section>
+
+<div class="grid">
+<section class="panel">
+  <h2>🎯 종합 매수·매도 신호</h2>
+  <div class="bar">
+    <div class="fill" id="scorebar"></div>
+  </div>
+  <div id="indicators" style="margin-top:15px">
+    분석 데이터 대기 중...
+  </div>
+  <div class="notice">
+    70점 이상 : 매수 우세<br>
+    40~69점 : 중립<br>
+    39점 이하 : 매도 우세<br>
+    <small>
+      점수는 자체 기술지표 규칙에 따른 값이며
+      실제 수익 확률을 뜻하지 않습니다.
+    </small>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>💰 손절·익절 가격 계산기</h2>
+  <div class="row">
+    <div>
+      <label>진입가 (원)</label>
+      <input id="entry" type="number"
+        min="0" step="any"
+        placeholder="현재가 자동 적용">
+    </div>
+    <div>
+      <label>손절 ATR 배수</label>
+      <input id="stopmult" type="number"
+        min="0.1" step="0.1" value="1.5">
+    </div>
+    <div>
+      <label>목표 손익비</label>
+      <input id="rr" type="number"
+        min="0.1" step="0.1" value="2">
+    </div>
+  </div>
+  <div id="risk" class="notice">
+    캔들 데이터 조회 후 자동 계산
+  </div>
+  <small>
+    현물 매수 기준 예시입니다.
+    거래 수수료 및 슬리피지는 제외됩니다.
+  </small>
+</section>
+</div>
+
+<div class="grid">
+<section class="panel">
+  <h2>🔔 조건 충족 알림</h2>
+  <div class="row">
+    <select id="alerttype">
+      <option value="scoreup">매매 점수 이상</option>
+      <option value="scoredown">매매 점수 이하</option>
+      <option value="priceup">현재가 이상</option>
+      <option value="pricedown">현재가 이하</option>
+      <option value="rsiup">RSI 이상</option>
+      <option value="rsidown">RSI 이하</option>
+    </select>
+    <input type="number" id="threshold"
+      placeholder="기준값" step="any">
+    <button id="addalert">알림 추가</button>
+  </div>
+  <div id="alerts"></div>
+  <small>
+    웹페이지가 열려 있는 동안에만 조건을 감시합니다.
+  </small>
+</section>
+
+<section class="panel">
+  <h2>📋 분석 기준</h2>
+  <div class="notice">
+    EMA 추세 : 30점<br>
+    MACD 모멘텀 : 25점<br>
+    RSI : 20점<br>
+    볼린저밴드 : 15점<br>
+    거래량 : 10점
+  </div>
+  <p class="muted">
+    지표는 완성된 캔들을 기준으로 계산합니다.
+    현재가는 별도 최신 시세를 사용합니다.
+  </p>
+</section>
+</div>
+
+<footer>
+SMART COIN LAB v1.0<br>
+개인 투자 분석 보조 도구 · 자동매매 기능 없음
+</footer>
+</main>
+
+<script>
+"use strict";
+
+const API="https://api.upbit.com/v1";
+const $=id=>document.getElementById(id);
+const fmt=(n,d=0)=>
+  Number.isFinite(n)
+  ?n.toLocaleString("ko-KR",{
+    maximumFractionDigits:d
+  }):"—";
+
+let candles=[];
+let ticker=null;
+let analysis=null;
+let markets=[];
+let loadSeq=0;
+
+const STORAGE="smartcoinlab-v1";
+let saved={favorites:[],alerts:[]};
+
+try {
+  const old=JSON.parse(
+    localStorage.getItem(STORAGE)||"{}"
+  );
+  if(Array.isArray(old.favorites))
+    saved.favorites=old.favorites;
+  if(Array.isArray(old.alerts))
+    saved.alerts=old.alerts;
+} catch(e) {}
+
+function persist(){
+  try {
+    localStorage.setItem(
+      STORAGE,JSON.stringify(saved)
+    );
+  } catch(e) {}
+}
+
+async function get(path){
+  const response=await fetch(API+path,{
+    headers:{accept:"application/json"}
+  });
+  if(!response.ok)
+    throw new Error("API HTTP "+response.status);
+  return response.json();
+}
+
+const mean=a=>
+  a.reduce((s,v)=>s+v,0)/a.length;
+
+function ema(a,n){
+  const out=Array(a.length).fill(null);
+  if(a.length<n)return out;
+  const k=2/(n+1);
+  let v=mean(a.slice(0,n));
+  out[n-1]=v;
+  for(let i=n;i<a.length;i++){
+    v=a[i]*k+v*(1-k);
+    out[i]=v;
+  }
+  return out;
+}
+
+function rsi(a,n=14){
+  const out=Array(a.length).fill(null);
+  if(a.length<=n)return out;
+  let gain=0,loss=0;
+
+  for(let i=1;i<=n;i++){
+    const d=a[i]-a[i-1];
+    gain+=Math.max(0,d);
+    loss+=Math.max(0,-d);
+  }
+  gain/=n;
+  loss/=n;
+
+  function value(){
+    if(loss===0)return gain===0?50:100;
+    return 100-100/(1+gain/loss);
+  }
+
+  out[n]=value();
+  for(let i=n+1;i<a.length;i++){
+    const d=a[i]-a[i-1];
+    gain=(gain*(n-1)+Math.max(0,d))/n;
+    loss=(loss*(n-1)+Math.max(0,-d))/n;
+    out[i]=value();
+  }
+  return out;
+}
+
+function macd(a){
+  const e12=ema(a,12);
+  const e26=ema(a,26);
+  const m=a.map((v,i)=>
+    e26[i]===null?null:e12[i]-e26[i]
+  );
+  const valid=m.filter(v=>v!==null);
+  const sig=ema(valid,9);
+  const s=m.map((v,i)=>
+    i<25?null:(sig[i-25]??null)
+  );
+  const h=m.map((v,i)=>
+    v===null||s[i]===null
+    ?null:v-s[i]
+  );
+  return {m,s,h};
+}
+
+function atr(cs,n=14){
+  const tr=cs.map((c,i)=>{
+    if(i===0)return c.high-c.low;
+    const prev=cs[i-1].close;
+    return Math.max(
+      c.high-c.low,
+      Math.abs(c.high-prev),
+      Math.abs(c.low-prev)
+    );
+  });
+  const out=Array(tr.length).fill(null);
+  if(tr.length<n)return out;
+  let v=mean(tr.slice(0,n));
+  out[n-1]=v;
+  for(let i=n;i<tr.length;i++){
+    v=(v*(n-1)+tr[i])/n;
+    out[i]=v;
+  }
+  return out;
+}
+
+function bands(a,n=20){
+  return a.map((v,i)=>{
+    if(i<n-1)return null;
+    const sample=a.slice(i-n+1,i+1);
+    const mid=mean(sample);
+    const dev=Math.sqrt(
+      mean(sample.map(x=>(x-mid)**2))
+    );
+    return {
+      mid,
+      up:mid+2*dev,
+      low:mid-2*dev
+    };
+  });
+}
+
+function parseCandles(raw){
+  return raw.map(c=>({
+    time:Date.parse(
+      c.candle_date_time_utc+"Z"
+    ),
+    open:c.opening_price,
+    high:c.high_price,
+    low:c.low_price,
+    close:c.trade_price,
+    volume:c.candle_acc_trade_volume
+  })).sort((a,b)=>a.time-b.time);
+}
+
+function aggregate4h(hours){
+  const groups=new Map();
+
+  for(const c of hours){
+    const bucket=
+      Math.floor(
+        (c.time+9*3600000)/14400000
+      )*14400000-9*3600000;
+
+    if(!groups.has(bucket))
+      groups.set(bucket,[]);
+    groups.get(bucket).push(c);
+  }
+
+  return [...groups]
+    .sort((a,b)=>a[0]-b[0])
+    .map(([time,items])=>({
+      time,
+      open:items[0].open,
+      high:Math.max(...items.map(x=>x.high)),
+      low:Math.min(...items.map(x=>x.low)),
+      close:items.at(-1).close,
+      volume:items.reduce(
+        (s,x)=>s+x.volume,0
+      ),
+      count:items.length
+    }))
+    .filter(c=>c.count===4);
+}
+
+async function fetchCandles(market,interval){
+  const path=interval==="day"
+    ?"candles/days"
+    :"candles/minutes/"+
+      (interval==="240"?"60":interval);
+
+  const pages=interval==="240"?4:2;
+  let all=[];
+  let to="";
+
+  for(let i=0;i<pages;i++){
+    const url="/"+path+
+      "?market="+encodeURIComponent(market)+
+      "&count=200"+
+      (to?"&to="+encodeURIComponent(to):"");
+
+    const data=await get(url);
+    if(!Array.isArray(data)||!data.length)
+      break;
+
+    all.push(...data);
+    to=data.at(-1).candle_date_time_utc+"Z";
+
+    if(data.length<200)break;
+  }
+
+  let cs=parseCandles(all);
+
+  if(interval==="240"){
+    cs=aggregate4h(cs);
+  } else if(cs.length){
+    const last=cs.at(-1);
+    const duration=interval==="day"
+      ?86400000:Number(interval)*60000;
+
+    let start=last.time;
+
+    if(interval==="day"){
+      const d=new Date(last.time);
+      start=Date.UTC(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate()
+      )-9*3600000;
+    }
+
+    if(Date.now()<start+duration)
+      cs.pop();
+  }
+
+  return cs;
+}
+
+function compute(cs){
+  const close=cs.map(c=>c.close);
+  const vol=cs.map(c=>c.volume);
+  const i=close.length-1;
+
+  if(i<65)
+    throw new Error(
+      "지표 계산에 필요한 캔들이 부족합니다."
+    );
+
+  const e20=ema(close,20);
+  const e60=ema(close,60);
+  const rs=rsi(close);
+  const mc=macd(close);
+  const bb=bands(close);
+  const at=atr(cs);
+
+  const price=close[i];
+  const parts=[];
+
+  const trend=
+    price>e20[i]&&e20[i]>e60[i]?30:
+    price<e20[i]&&e20[i]<e60[i]?0:15;
+  parts.push(["EMA 추세",trend,30]);
+
+  const momentum=
+    mc.h[i]>0&&mc.h[i]>mc.h[i-1]?25:
+    mc.h[i]<0&&mc.h[i]<mc.h[i-1]?0:12;
+  parts.push(["MACD",momentum,25]);
+
+  const r=rs[i];
+  const rScore=
+    r<30?18:r<45?20:
+    r<=65?14:r<=75?7:2;
+  parts.push(["RSI",rScore,20]);
+
+  const b=bb[i];
+  const position=
+    (price-b.low)/
+    Math.max(b.up-b.low,1e-12);
+
+  const bScore=
+    position<.2?13:
+    position<.5?15:
+    position<.85?10:3;
+  parts.push(["볼린저밴드",bScore,15]);
+
+  const avg=mean(vol.slice(i-20,i));
+  const vScore=
+    vol[i]>avg*1.5
+      ?(price>=cs[i].open?10:0)
+      :vol[i]>avg?7:5;
+  parts.push(["거래량",vScore,10]);
+
+  const score=parts.reduce(
+    (s,p)=>s+p[1],0
+  );
+
+  return {
+    score,parts,r,mc,rs,e20,e60,bb,
+    at:at[i],
+    last:price,
+    volRatio:avg?vol[i]/avg:0,
+    verdict:score>=70
+      ?"매수 우세"
+      :score<40?"매도 우세":"중립"
+  };
+}
+
+function setupCanvas(el){
+  const rect=el.getBoundingClientRect();
+  const dpr=Math.min(
+    window.devicePixelRatio||1,2
+  );
+  el.width=Math.round(rect.width*dpr);
+  el.height=Math.round(rect.height*dpr);
+  const ctx=el.getContext("2d");
+  ctx.scale(dpr,dpr);
+  return {
+    ctx,w:rect.width,h:rect.height
+  };
+}
+
+function line(ctx,values,min,max,x,y,w,h,color){
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  let started=false;
+
+  values.forEach((v,i)=>{
+    if(v===null||!Number.isFinite(v)){
+      started=false;
+      return;
+    }
+    const xx=x+i*w/
+      Math.max(1,values.length-1);
+    const yy=y+(max-v)/
+      (max-min||1)*h;
+
+    if(!started){
+      ctx.moveTo(xx,yy);
+      started=true;
+    }else{
+      ctx.lineTo(xx,yy);
+    }
+  });
+  ctx.stroke();
+}
+
+function renderChart(){
+  if(!candles.length||!analysis)return;
+
+  const cs=candles.slice(-85);
+  const {ctx,w,h}=setupCanvas($("chart"));
+  const left=12,right=w-12;
+  const top=20,bottom=h-22;
+  const hi=Math.max(...cs.map(c=>c.high));
+  const lo=Math.min(...cs.map(c=>c.low));
+  const range=hi-lo||1;
+  const step=(right-left)/cs.length;
+
+  const y=v=>top+
+    (hi-v)/range*(bottom-top);
+
+  ctx.strokeStyle="#273751";
+  ctx.fillStyle="#91a5c2";
+  ctx.font="11px system-ui";
+
+  for(let t=0;t<=4;t++){
+    const yy=top+(bottom-top)*t/4;
+    ctx.beginPath();
+    ctx.moveTo(left,yy);
+    ctx.lineTo(right,yy);
+    ctx.stroke();
+    ctx.fillText(
+      fmt(hi-range*t/4,2),
+      left+3,yy-3
+    );
+  }
+
+  cs.forEach((c,i)=>{
+    const x=left+(i+.5)*step;
+    const color=c.close>=c.open
+      ?"#31d0a3":"#ff7084";
+    ctx.strokeStyle=color;
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(x,y(c.high));
+    ctx.lineTo(x,y(c.low));
+    ctx.stroke();
+    const bw=Math.max(2,step*.64);
+    ctx.fillRect(
+      x-bw/2,
+      Math.min(y(c.open),y(c.close)),
+      bw,
+      Math.max(
+        1,Math.abs(y(c.open)-y(c.close))
+      )
+    );
+  });
+
+  const start=candles.length-cs.length;
+  const draw=(values,color)=>
+    line(
+      ctx,values.slice(start),
+      lo,hi,left+step/2,top,
+      right-left-step,bottom-top,color
+    );
+
+  draw(analysis.e20,"#f8c35c");
+  draw(analysis.e60,"#8d9cff");
+
+  const rctx=setupCanvas($("rsiChart"));
+  for(const v of [30,70]){
+    const yy=10+(100-v)/100*
+      (rctx.h-20);
+    rctx.ctx.strokeStyle="#38465c";
+    rctx.ctx.beginPath();
+    rctx.ctx.moveTo(10,yy);
+    rctx.ctx.lineTo(rctx.w-10,yy);
+    rctx.ctx.stroke();
+    rctx.ctx.fillStyle="#8da0ba";
+    rctx.ctx.fillText(String(v),12,yy-3);
+  }
+
+  line(
+    rctx.ctx,analysis.rs.slice(start),
+    0,100,10,10,
+    rctx.w-20,rctx.h-20,"#e9bd65"
+  );
+
+  const mctx=setupCanvas($("macdChart"));
+  const ms=analysis.mc.m.slice(start);
+  const ss=analysis.mc.s.slice(start);
+  const hh=analysis.mc.h.slice(start);
+  const values=[...ms,...ss,...hh]
+    .filter(Number.isFinite);
+  const min=Math.min(0,...values);
+  const max=Math.max(0,...values);
+  const zero=10+max/(max-min||1)*
+    (mctx.h-20);
+
+  mctx.ctx.strokeStyle="#40516b";
+  mctx.ctx.beginPath();
+  mctx.ctx.moveTo(10,zero);
+  mctx.ctx.lineTo(mctx.w-10,zero);
+  mctx.ctx.stroke();
+
+  hh.forEach((v,i)=>{
+    if(v===null)return;
+    const x=10+i*(mctx.w-20)/hh.length;
+    const yy=10+(max-v)/(max-min||1)*
+      (mctx.h-20);
+    mctx.ctx.fillStyle=v>=0
+      ?"#278f79":"#b75264";
+    mctx.ctx.fillRect(
+      x,Math.min(yy,zero),
+      Math.max(1,(mctx.w-20)/hh.length*.65),
+      Math.max(1,Math.abs(yy-zero))
+    );
+  });
+
+  line(mctx.ctx,ms,min,max,10,10,
+    mctx.w-20,mctx.h-20,"#70baff");
+  line(mctx.ctx,ss,min,max,10,10,
+    mctx.w-20,mctx.h-20,"#f5ba65");
+}
+
+function risk(){
+  if(!analysis)return;
+
+  const entered=Number($("entry").value);
+  const entry=entered>0
+    ?entered:(ticker?.trade_price||analysis.last);
+  const mult=Number($("stopmult").value);
+  const rr=Number($("rr").value);
+
+  if(entry<=0||mult<=0||rr<=0){
+    $("risk").textContent=
+      "양수 값을 입력하세요.";
+    return;
+  }
+
+  const distance=analysis.at*mult;
+  const stop=entry-distance;
+  const target=entry+distance*rr;
+
+  $("risk").innerHTML=`
+    기준 진입가: <b>${fmt(entry,4)}원</b>
+    <hr>
+    ATR(14): ${fmt(analysis.at,4)}원<br>
+    손절가:
+    <b class="negative">${fmt(stop,4)}원</b>
+    (${fmt(-distance/entry*100,2)}%)<br>
+    익절가:
+    <b class="positive">${fmt(target,4)}원</b>
+    (+${fmt(distance*rr/entry*100,2)}%)<br>
+    손익비: 1 : ${fmt(rr,2)}
+  `;
+}
+
+function draw(){
+  if(!analysis||!ticker)return;
+
+  const price=ticker.trade_price;
+  const change=ticker.signed_change_rate*100;
+
+  $("price").textContent=fmt(price,4)+"원";
+  $("change").textContent=
+    (change>=0?"+":"")+fmt(change,2)+"%";
+  $("change").className=
+    change>=0?"positive":"negative";
+
+  $("score").textContent=
+    analysis.score+" / 100";
+  $("verdict").textContent=analysis.verdict;
+  $("verdict").className=
+    analysis.score>=70?"positive":
+    analysis.score<40?"negative":"";
+
+  $("scorebar").style.width=
+    analysis.score+"%";
+
+  $("indicators").innerHTML=`
+    <table>
+      <tr><th>기술지표</th><th>점수</th></tr>
+      ${analysis.parts.map(p=>`
+        <tr>
+          <td>${p[0]}</td>
+          <td>${p[1]} / ${p[2]}</td>
+        </tr>
+      `).join("")}
+    </table>
+    <p>RSI(14):
+      <b>${fmt(analysis.r,1)}</b>
+    </p>
+    <p>거래량 / 20봉 평균:
+      <b>${fmt(analysis.volRatio,2)}배</b>
+    </p>
+  `;
+
+  renderChart();
+  risk();
+  checkAlerts();
+}
+
+function renderFavorites(){
+  const s=$("favorites");
+  s.replaceChildren(
+    new Option("관심종목 선택","")
+  );
+
+  saved.favorites.forEach(m=>
+    s.add(new Option(m,m))
+  );
+
+  $("favorite").textContent=
+    saved.favorites.includes($("market").value)
+    ?"★ 관심종목 제거"
+    :"☆ 관심종목 추가";
+}
+
+function renderAlerts(){
+  const box=$("alerts");
+  box.replaceChildren();
+
+  saved.alerts.forEach((a,i)=>{
+    const d=document.createElement("div");
+    d.className="notice"+(
+      a.fired?" alert":""
+    );
+
+    const t=document.createElement("span");
+    t.textContent=
+      `${a.market} / ${a.interval} / `+
+      `${a.type} ${a.threshold}`+
+      (a.fired?" ✓ 충족":"");
+
+    const b=document.createElement("button");
+    b.textContent="삭제";
+    b.className="secondary";
+    b.style.marginLeft="10px";
+    b.style.width="auto";
+
+    b.onclick=()=>{
+      saved.alerts.splice(i,1);
+      persist();
+      renderAlerts();
+    };
+
+    d.append(t,b);
+    box.append(d);
+  });
+}
+
+function checkAlerts(){
+  if(!analysis||!ticker)return;
+
+  const types={
+    scoreup:analysis.score,
+    scoredown:analysis.score,
+    priceup:ticker.trade_price,
+    pricedown:ticker.trade_price,
+    rsiup:analysis.r,
+    rsidown:analysis.r
+  };
+
+  const fired=[];
+
+  saved.alerts.forEach(a=>{
+    if(a.fired)return;
+    if(a.market!==$("market").value)return;
+    if(a.interval!==$("interval").value)return;
+
+    const val=types[a.type];
+    const hit=a.type.endsWith("up")
+      ?val>=a.threshold
+      :val<=a.threshold;
+
+    if(hit){
+      a.fired=true;
+      fired.push(
+        `${a.market} 조건 충족: ${fmt(val,2)}`
+      );
+    }
+  });
+
+  if(fired.length){
+    persist();
+    renderAlerts();
+    $("status").textContent=
+      "🔔 "+fired.join(" / ");
+    $("status").className="positive";
+  }
+}
+
+async function loadMarkets(){
+  try {
+    const raw=await get(
+      "/market/all?is_details=false"
+    );
+    markets=raw.filter(
+      m=>m.market.startsWith("KRW-")
+    );
+
+    const sel=$("market");
+    const current=sel.value;
+    sel.replaceChildren();
+
+    markets.forEach(m=>{
+      sel.add(new Option(
+        `${m.korean_name} (${m.market.split("-")[1]})`,
+        m.market
+      ));
+    });
+
+    sel.value=markets.some(
+      m=>m.market===current
+    )?current:"KRW-BTC";
+
+    const list=$("coins");
+    list.replaceChildren();
+
+    markets.forEach(m=>{
+      const o=document.createElement("option");
+      o.value=
+        `${m.korean_name} (${m.market.split("-")[1]})`;
+      list.append(o);
+    });
+
+    renderFavorites();
+  } catch(e){
+    $("status").textContent=
+      "마켓 목록 조회 실패: "+e.message;
+  }
+}
+
+async function load(){
+  const seq=++loadSeq;
+  const market=$("market").value;
+  const interval=$("interval").value;
+
+  $("status").className="";
+  $("status").textContent=
+    "시세 및 캔들 데이터를 조회 중...";
+  $("refresh").disabled=true;
+
+  try {
+    const [cs,t]=await Promise.all([
+      fetchCandles(market,interval),
+      get("/ticker?markets="+
+        encodeURIComponent(market))
+    ]);
+
+    if(seq!==loadSeq)return;
+
+    if(!Array.isArray(t)||!t.length)
+      throw new Error("현재가 조회 실패");
+
+    candles=cs;
+    ticker=t[0];
+    analysis=compute(cs);
+
+    draw();
+    renderFavorites();
+
+    $("status").textContent=
+      "조회 완료: "+
+      new Date().toLocaleTimeString("ko-KR")+
+      " / 완성 캔들 "+cs.length+"개";
+
+  } catch(e){
+    if(seq===loadSeq){
+      $("status").textContent=
+        "조회 실패: "+e.message+
+        " / API 제한 또는 네트워크를 확인하세요.";
+
+      candles=[];
+      ticker=null;
+      analysis=null;
+
+      ["price","change","score","verdict"]
+        .forEach(id=>$(id).textContent="—");
+    }
+  } finally {
+    if(seq===loadSeq)
+      $("refresh").disabled=false;
+  }
+}
+
+$("refresh").onclick=load;
+
+$("market").onchange=()=>{
+  renderFavorites();
+  load();
+};
+
+$("interval").onchange=load;
+
+$("search").addEventListener("change",()=>{
+  const s=$("search").value
+    .trim().toLowerCase();
+
+  const m=markets.find(x=>
+    s===x.market.toLowerCase()||
+    s===x.market.split("-")[1].toLowerCase()||
+    s===x.korean_name.toLowerCase()||
+    s===`${x.korean_name} (${x.market.split("-")[1]})`
+      .toLowerCase()
+  );
+
+  if(m){
+    $("market").value=m.market;
+    renderFavorites();
+    load();
+  }else{
+    $("status").textContent=
+      "검색된 종목이 없습니다.";
+  }
+});
+
+$("favorite").onclick=()=>{
+  const m=$("market").value;
+  const i=saved.favorites.indexOf(m);
+
+  if(i<0)saved.favorites.push(m);
+  else saved.favorites.splice(i,1);
+
+  persist();
+  renderFavorites();
+};
+
+$("favorites").onchange=()=>{
+  const m=$("favorites").value;
+  if(!m)return;
+  $("market").value=m;
+  renderFavorites();
+  load();
+};
+
+["entry","stopmult","rr"].forEach(
+  id=>$(id).oninput=risk
+);
+
+$("addalert").onclick=()=>{
+  const raw=$("threshold").value;
+  const v=Number(raw);
+
+  if(raw.trim()===""||!Number.isFinite(v)){
+    alert("알림 기준값을 입력하세요.");
+    return;
+  }
+
+  saved.alerts.push({
+    market:$("market").value,
+    interval:$("interval").value,
+    type:$("alerttype").value,
+    threshold:v,
+    fired:false
+  });
+
+  persist();
+  renderAlerts();
+  checkAlerts();
+};
+
+window.addEventListener("resize",()=>{
+  if(analysis)renderChart();
+});
+
+setInterval(()=>{
+  if($("auto").checked&&!document.hidden)
+    load();
+},60000);
+
+renderAlerts();
+loadMarkets().then(load);
+</script>
+</body>
+</html>
